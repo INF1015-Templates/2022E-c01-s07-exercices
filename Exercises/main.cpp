@@ -29,19 +29,19 @@ using namespace iter;
 void runSimpleVtableExample() {
 	struct Spam {
 		virtual ~Spam() = default;
-		virtual void fn1() const { cout << "Spam::fn1()\n"; }
+		virtual void fn1() const { cout << "Spam::fn1()" << "\n"; }
 		int fn2() const { return m1; }
 		int m1 = 0x11111111;
 	};
 
 	struct Eggs : public Spam {
-		void fn1() const override { cout << "Eggs::fn1()\n"; }
+		void fn1() const override { cout << "Eggs::fn1()" << "\n"; }
 		int fn2() const { return m1 + m2; }
 		int m2 = 0x22222222;
 	};
 
 	struct Parrot : public Eggs {
-		void fn1() const override { cout << "Parrot::fn1()\n"; }
+		void fn1() const override { cout << "Parrot::fn1()" << "\n"; }
 		int fn2() const { return m1 + m2 + m3; }
 		int m3 = 0x33333333;
 	};

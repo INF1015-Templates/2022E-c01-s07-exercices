@@ -28,64 +28,78 @@ using namespace iter;
 
 void runSimpleVtableExample() {
 	struct Spam {
+		virtual ~Spam() = default;
 		virtual void fn1() const { cout << "Spam::fn1()\n"; }
-		virtual int fn2() const { return m1_; }
-		int m1_ = 0x11111111;
+		int fn2() const { return m1; }
+		int m1 = 0x11111111;
 	};
 
 	struct Eggs : public Spam {
 		void fn1() const override { cout << "Eggs::fn1()\n"; }
-		int fn2() const override { return m1_ + m2_; }
-		int m2_ = 0x22222222;
+		int fn2() const { return m1 + m2; }
+		int m2 = 0x22222222;
 	};
 
 	struct Parrot : public Eggs {
 		void fn1() const override { cout << "Parrot::fn1()\n"; }
-		int fn2() const override { return m1_ + m2_ + m3_; }
-		int m3_ = 0x33333333;
+		int fn2() const { return m1 + m2 + m3; }
+		int m3 = 0x33333333;
 	};
 
+	// En inspectant la mémoire, on voit que parrot a un pointeur de vtable au début, puis les données dans l'ordre d'héritage
+	Parrot parrot;
+	cout << sizeof(parrot) << "\n";
 
-	Parrot foo;
-	foo.m1_ = 0x42;
-	foo.m2_ = 0x69;
-	foo.m3_ = 0x1337;
-	cout << sizeof(foo) << "\n";
+	// En faisant des conversions (up-casting), on voit que l'adresse ne change pas.
+	cout << &parrot << "\n"
+	     << static_cast<Eggs*>(&parrot) << "\n"
+	     << static_cast<Spam*>(&parrot) << "\n";
 
-	Spam& ref = foo;
+	Spam& ref = parrot;
+	// En inspectant l'assembleur, on voit que pour appeler fn1() (méthode virtuelle), il faut d'abord résoudre son adresse à travers le vtable.
 	ref.fn1();
-	auto res = ref.fn2();
-	cout << res;
+	// Ici, l'appel à fn2() (méthode non-virtuelle) est direct.
+	int res = ref.fn2();
+	cout << hex << res;
 }
 
 void runVirtualInheritanceVtableExample() {
 	struct Spam {
-		int m1_ = 0x11111111;
+		virtual ~Spam() = default;
+		int m1 = 0x11111111;
 	};
 
 	struct Eggs : virtual public Spam {
-		int m2_ = 0x22222222;
+		virtual ~Eggs() = default;
+		int m2 = 0x22222222;
 	};
 
 	struct Parrot : virtual public Spam {
-		int m3_ = 0x33333333;
+		virtual ~Parrot() = default;
+		int m3 = 0x33333333;
 	};
 
 	struct ExParrot : public Eggs, public Parrot {
-		int m4_ = 0x44444444;
+		virtual ~ExParrot() = default;
+		int m4 = 0x44444444;
 	};
 
-
-	Spam spam;
-	Eggs eggs;
-	Eggs eggs2;
-	Parrot parrot;
+	// En inspectant la mémoire, on voit que exParrot a trois pointeurs de vtable distincts.
 	ExParrot exParrot;
-	exParrot.m1_ = 0x55555555;
-	exParrot.m2_ = 0x66666666;
-	exParrot.m3_ = 0x77777777;
-	exParrot.m4_ = 0x88888888;
 	cout << sizeof(exParrot) << "\n";
+
+	// En faisant les conversions, on voit que l'adresse change.
+	cout << &exParrot << "\n"
+	     << static_cast<Eggs*>(&exParrot) << "\n"
+	     << static_cast<Parrot*>(&exParrot) << "\n"
+	     << static_cast<Spam*>(&exParrot) << "\n";
+
+	// En inspectant l'assembleur généré, on voit que l'accès à m2, m3 et m4 est direct.
+	exParrot.m4 = 0x88888888;
+	exParrot.m2 = 0x66666666;
+	exParrot.m3 = 0x77777777;
+	// Ici, on voit que pour savoir comment accéder à m1 (membre de la base virtuelle), il faut passer par le vtable.
+	exParrot.m1 = 0x55555555;
 }
 
 void runSchoolExample() {
@@ -178,8 +192,8 @@ void runAmbiguousCallExample() {
 
 int main() {
 	//runAmbiguousCallExample(); cout << "\n\n\n\n";
-	runSimpleVtableExample(); cout << "\n\n\n\n";
-	runVirtualInheritanceVtableExample(); cout << "\n\n\n\n";
+	//runSimpleVtableExample(); cout << "\n\n\n\n";
+	//runVirtualInheritanceVtableExample(); cout << "\n\n\n\n";
 	//runSchoolExample(); cout << "\n\n\n\n";
 	//runAnimalExample(); cout << "\n\n\n\n";
 }
